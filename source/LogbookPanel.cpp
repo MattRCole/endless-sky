@@ -24,6 +24,7 @@ this program. If not, see <https://www.gnu.org/licenses/>.
 #include "GameData.h"
 #include "text/layout.hpp"
 #include "PlayerInfo.h"
+#include "PlayerInfoPanel.h"
 #include "Preferences.h"
 #include "Screen.h"
 #include "Sprite.h"

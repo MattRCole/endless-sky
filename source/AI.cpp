@@ -353,7 +353,7 @@ void AI::UpdateKeys(PlayerInfo &player, Command &activeCommands)
 	escortsAreFrugal = Preferences::Has("Escorts use ammo frugally");
 
 	autoPilot |= activeCommands;
-	if(activeCommands.Has(AutopilotCancelCommands()))
+	if(activeCommands.Has(AutopilotCancelCommands()) || activeCommands.HasMovement())
 	{
 		bool canceled = (autoPilot.Has(Command::JUMP) && !activeCommands.Has(Command::JUMP));
 		canceled |= (autoPilot.Has(Command::STOP) && !activeCommands.Has(Command::STOP));
@@ -3553,6 +3553,14 @@ void AI::MovePlayer(Ship &ship, const PlayerInfo &player, Command &activeCommand
 			&& !(autoPilot | activeCommands).Has(Command::LAND | Command::JUMP | Command::FLEET_JUMP | Command::BOARD)
 			&& (!target || target->GetGovernment()->IsEnemy()))
 		AutoFire(ship, firingCommands, false);
+
+	const Point &stick = activeCommands.TurnPoint();
+	if(stick.X() != 0. || stick.Y() != 0.)
+	{
+		command.SetTurn(TurnToward(ship, stick));
+	}
+	command.SetThrustGradient(activeCommands.ThrustGradient());
+
 	if(activeCommands)
 	{
 		if(activeCommands.Has(Command::FORWARD))

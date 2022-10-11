@@ -30,6 +30,8 @@ this program. If not, see <https://www.gnu.org/licenses/>.
 #include "Interface.h"
 #include "text/layout.hpp"
 #include "LineShader.h"
+#include "MapDetailPanel.h"
+#include "MapOutfitterPanel.h"
 #include "Mission.h"
 #include "Planet.h"
 #include "PlayerInfo.h"
@@ -111,6 +113,13 @@ namespace {
 			}
 		}
 	}
+
+	const set<Uint8> CONTROLLER_BUTTONS{
+		SDL_CONTROLLER_BUTTON_X,
+		SDL_CONTROLLER_BUTTON_Y,
+		SDL_CONTROLLER_BUTTON_LEFTSHOULDER,
+		SDL_CONTROLLER_BUTTON_RIGHTSHOULDER,
+	};
 }
 
 
@@ -509,6 +518,29 @@ bool MissionPanel::Scroll(double dx, double dy)
 		return Drag(0., dy * Preferences::ScrollSpeed());
 
 	return MapPanel::Scroll(dx, dy);
+}
+
+
+
+bool MissionPanel::GamePadState(GamePad &controller)
+{
+	if(controller.Held(SDL_CONTROLLER_BUTTON_X))
+		DoKey('a');
+	else if(controller.Held(SDL_CONTROLLER_BUTTON_Y))
+		DoKey('A');
+	else if(controller.Held(SDL_CONTROLLER_BUTTON_LEFTSHOULDER))
+	{
+		GetUI()->Pop(this);
+		GetUI()->Push(new MapOutfitterPanel(*this));
+	}
+	else if(controller.Held(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER))
+	{
+		GetUI()->Pop(this);
+		GetUI()->Push(new MapDetailPanel(*this));
+	}
+	controller.Clear(CONTROLLER_BUTTONS);
+
+	return Panel::GamePadState(controller);
 }
 
 

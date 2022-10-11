@@ -16,6 +16,7 @@ this program. If not, see <https://www.gnu.org/licenses/>.
 #include "UI.h"
 
 #include "Command.h"
+#include "GameWindow.h"
 #include "Panel.h"
 #include "Screen.h"
 
@@ -24,6 +25,12 @@ this program. If not, see <https://www.gnu.org/licenses/>.
 #include <algorithm>
 
 using namespace std;
+
+
+
+UI::UI(GamePad &controller) : controller(controller)
+{
+}
 
 
 
@@ -93,6 +100,21 @@ bool UI::Handle(const SDL_Event &event)
 
 
 
+// Handle gamepad state.
+void UI::HandleGamePad()
+{
+	for(auto it = stack.crbegin(); it != stack.crend(); ++it)
+	{
+		if((*it)->GamePadState(controller) || (*it)->TrapAllEvents())
+			break;
+	}
+
+	// Handle any queued push or pop commands.
+	PushOrPop();
+}
+
+
+
 // Step all the panels forward (advance animations, move objects, etc.).
 void UI::StepAll()
 {
@@ -122,6 +144,20 @@ void UI::DrawAll()
 
 	for( ; it != stack.end(); ++it)
 		(*it)->Draw();
+}
+
+
+
+std::list<Rectangle> UI::AllZones() const
+{
+	std::list<Rectangle> zones;
+	for(auto it = stack.crbegin(); it != stack.crend(); ++it)
+	{
+		zones.insert(zones.end(), (*it)->zones.begin(), (*it)->zones.end());
+		if((*it)->TrapAllEvents())
+			break;
+	}
+	return zones;
 }
 
 
@@ -259,6 +295,88 @@ bool UI::IsEmpty() const
 
 
 
+// Get the shared controller state object.
+GamePad &UI::Controller() const
+{
+	return controller;
+}
+
+
+
+void UI::CursorToFirstZone() const
+{
+	std::list<Rectangle> zones = AllZones();
+	auto firstZone = zones.cbegin();
+	if(firstZone != zones.cend())
+	{
+		Point center = firstZone->Center();
+		MoveMouseOffset(center);
+	}
+}
+
+
+
+void UI::CursorToNextZone(const Point &mouse) const
+{
+	std::list<Rectangle> zones = AllZones();
+	bool match = false;
+
+	auto it = zones.cbegin();
+	for(; !match && it != zones.cend(); ++it)
+	{
+		if(it->Contains(mouse))
+			match = true;
+	}
+	if(match)
+	{
+		if(it != zones.cend())
+		{
+			Point center = it->Center();
+			MoveMouseOffset(center);
+		}
+	}
+	else
+		CursorToFirstZone();
+}
+
+
+
+void UI::CursorToPrevZone(const Point &mouse) const
+{
+	bool match = false;
+	std::list<Rectangle> zones = AllZones();
+
+	auto it = zones.crbegin();
+	for(; !match && it != zones.crend(); ++it)
+	{
+		if(it->Contains(mouse))
+			match = true;
+	}
+	if(match)
+	{
+		if(it != zones.crend())
+		{
+			Point center = it->Center();
+			MoveMouseOffset(center);
+		}
+	}
+	else
+		CursorToFirstZone();
+}
+
+
+
+void UI::NextPanel(bool dir)
+{
+	for(auto it = stack.crbegin(); it != stack.crend(); ++it)
+	{
+		if((dir ? (*it)->NextPanel() : (*it)->PrevPanel()) || (*it)->TrapAllEvents())
+			break;
+	}
+}
+
+
+
 // Get the current mouse position.
 Point UI::GetMouse()
 {
@@ -270,9 +388,34 @@ Point UI::GetMouse()
 
 
 
+// Move mouse according to relative game coordinates. Origin is at the middle of the
+// game window.
+void UI::MoveMouseOffset(const Point &point)
+{
+	double scale = Screen::Zoom() / 100.;
+	int x = (point.X() + Screen::Right()) * scale;
+	int y = (point.Y() + Screen::Bottom()) * scale;
+	SDL_WarpMouseInWindow(GameWindow::GetMainWindow(), x, y);
+}
+
+
+
+void UI::MoveMouseRelative(const Point &point)
+{
+	int x = 0;
+	int y = 0;
+	SDL_GetMouseState(&x, &y);
+	SDL_WarpMouseInWindow(GameWindow::GetMainWindow(), x + point.X(), y + point.Y());
+}
+
+
+
 // If a push or pop is queued, apply it.
 void UI::PushOrPop()
 {
+	if(controller.HavePads() && (!toPush.empty() || !toPop.empty()))
+		controller.Clear();
+
 	// Handle any panels that should be added.
 	for(shared_ptr<Panel> &panel : toPush)
 		if(panel)

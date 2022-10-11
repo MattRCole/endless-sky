@@ -16,9 +16,16 @@ this program. If not, see <https://www.gnu.org/licenses/>.
 #ifndef GAMEWINDOW_H_
 #define GAMEWINDOW_H_
 
+#include "Point.h"
 #include "Preferences.h"
 
+#include <SDL2/SDL.h>
+
 #include <string>
+
+class UI;
+
+
 
 // This class is a collection of global functions for handling SDL_Windows.
 class GameWindow {
@@ -53,6 +60,14 @@ public:
 	// Print the error message in the terminal, error file, and message box.
 	// Checks for video system errors and records those as well.
 	static void ExitWithError(const std::string& message, bool doPopUp = true);
+
+
+private:
+	static SDL_Window *GetMainWindow();
+
+
+private:
+	friend class UI;
 };
 
 

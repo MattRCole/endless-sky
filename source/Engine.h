@@ -23,6 +23,7 @@ this program. If not, see <https://www.gnu.org/licenses/>.
 #include "Command.h"
 #include "DrawList.h"
 #include "EscortDisplay.h"
+#include "GamePad.h"
 #include "Information.h"
 #include "Point.h"
 #include "Radar.h"
@@ -61,7 +62,7 @@ class Weather;
 // situations where there are many objects on screen at once.
 class Engine {
 public:
-	explicit Engine(PlayerInfo &player);
+	explicit Engine(PlayerInfo &player, GamePad &controller);
 	~Engine();
 
 	// Place all the player's ships, and "enter" the system the player is in.
@@ -110,7 +111,7 @@ private:
 	void SpawnPersons();
 	void GenerateWeather();
 	void SendHails();
-	void HandleKeyboardInputs();
+	void HandleKeyboardInputs(const Command &gamePadCommands);
 	void HandleMouseClicks();
 
 	void FillCollisionSets();
@@ -154,6 +155,7 @@ private:
 
 private:
 	PlayerInfo &player;
+	GamePad &controller;
 
 	std::list<std::shared_ptr<Ship>> ships;
 	std::vector<Projectile> projectiles;

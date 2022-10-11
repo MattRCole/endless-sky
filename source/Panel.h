@@ -16,8 +16,10 @@ this program. If not, see <https://www.gnu.org/licenses/>.
 #ifndef PANEL_H_
 #define PANEL_H_
 
+#include "GamePad.h"
 #include "Rectangle.h"
 
+#include <chrono>
 #include <functional>
 #include <list>
 #include <string>
@@ -25,6 +27,7 @@ this program. If not, see <https://www.gnu.org/licenses/>.
 #include <SDL2/SDL.h>
 
 class Command;
+class GamePad;
 class Point;
 class TestContext;
 class UI;
@@ -81,6 +84,8 @@ protected:
 	virtual bool Drag(double dx, double dy);
 	virtual bool Release(int x, int y);
 	virtual bool Scroll(double dx, double dy);
+	virtual bool GamePadState(GamePad &controller);
+
 	// If a clickable zone is clicked while editing is happening, the panel may
 	// need to know to exit editing mode before handling the click.
 	virtual void EndEditing() {}
@@ -91,6 +96,17 @@ protected:
 
 	// Dim the background of this panel.
 	void DrawBackdrop() const;
+
+	// Move cursor to the first zone of this panel
+	void CursorToFirstZone();
+
+	// Move cursor to the next/prev zone.
+	void CursorToNextZone(const Point &mouse);
+	void CursorToPrevZone(const Point &mouse);
+
+	// Go to adjacent panels.
+	virtual bool NextPanel();
+	virtual bool PrevPanel();
 
 	UI *GetUI() const noexcept;
 
@@ -132,6 +148,11 @@ private:
 	bool isInterruptible = true;
 
 	std::list<Zone> zones;
+
+	// Fractional part of mouse cursor movement with stick.
+	Point controllerCursorRem;
+	// Has this panel handled the simulated mouse click yet.
+	std::chrono::time_point<std::chrono::steady_clock> controllerClickHandled;
 
 	friend class UI;
 };
