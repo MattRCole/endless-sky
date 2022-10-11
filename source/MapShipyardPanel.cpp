@@ -18,6 +18,7 @@ this program. If not, see <https://www.gnu.org/licenses/>.
 #include "CoreStartData.h"
 #include "text/Format.h"
 #include "GameData.h"
+#include "MapOutfitterPanel.h"
 #include "Planet.h"
 #include "PlayerInfo.h"
 #include "Point.h"
@@ -33,6 +34,13 @@ this program. If not, see <https://www.gnu.org/licenses/>.
 #include <set>
 
 using namespace std;
+
+namespace {
+	const set<Uint8> CONTROLLER_BUTTONS{
+		SDL_CONTROLLER_BUTTON_LEFTSHOULDER,
+		SDL_CONTROLLER_BUTTON_RIGHTSHOULDER,
+	};
+}
 
 
 
@@ -50,6 +58,20 @@ MapShipyardPanel::MapShipyardPanel(const MapPanel &panel, bool onlyHere)
 	Init();
 	onlyShowSoldHere = onlyHere;
 	UpdateCache();
+}
+
+
+
+bool MapShipyardPanel::GamePadState(GamePad &controller)
+{
+	if(controller.Held(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER))
+	{
+		GetUI()->Pop(this);
+		GetUI()->Push(new MapOutfitterPanel(*this));
+	}
+	controller.Clear(CONTROLLER_BUTTONS);
+
+	return Panel::GamePadState(controller);
 }
 
 

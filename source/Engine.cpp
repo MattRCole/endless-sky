@@ -201,8 +201,8 @@ namespace {
 
 
 
-Engine::Engine(PlayerInfo &player)
-	: player(player), ai(ships, asteroids.Minables(), flotsam),
+Engine::Engine(PlayerInfo &player, GamePad &controller)
+	: player(player), controller(controller), ai(ships, asteroids.Minables(), flotsam),
 	shipCollisions(256u, 32u)
 {
 	zoom = Preferences::ViewZoom();
@@ -482,11 +482,17 @@ void Engine::Step(bool isActive)
 	ai.UpdateEvents(events);
 	if(isActive)
 	{
-		HandleKeyboardInputs();
+		Command gamePadCommands;
+		if(controller.HavePads())
+			gamePadCommands = controller.ToCommand();
+		HandleKeyboardInputs(gamePadCommands);
 		// Ignore any inputs given when first becoming active, since those inputs
 		// were issued when some other panel (e.g. planet, hail) was displayed.
 		if(!wasActive)
+		{
 			activeCommands.Clear();
+			controller.Clear();
+		}
 		else
 		{
 			// Do a testing step if we got an active testContext from main.cpp.
@@ -498,6 +504,8 @@ void Engine::Step(bool isActive)
 				if(runningTest)
 					runningTest->Step(*testContext, player, activeCommands);
 			}
+			if(controller.HavePads())
+				activeCommands |= controller.ToCommand();
 			ai.UpdateKeys(player, activeCommands);
 		}
 	}
@@ -1811,7 +1819,7 @@ void Engine::SendHails()
 
 // Handle any keyboard inputs for the engine. This is done in the main thread
 // after all calculation threads are paused to avoid race conditions.
-void Engine::HandleKeyboardInputs()
+void Engine::HandleKeyboardInputs(const Command &gamePadCommands)
 {
 	Ship *flagship = player.Flagship();
 
@@ -1822,6 +1830,7 @@ void Engine::HandleKeyboardInputs()
 	// Determine which new keys were pressed by the player.
 	Command oldHeld = keyHeld;
 	keyHeld.ReadKeyboard();
+	keyHeld |= gamePadCommands;
 	Command keyDown = keyHeld.AndNot(oldHeld);
 
 	// Certain commands are always sent when the corresponding key is depressed.
